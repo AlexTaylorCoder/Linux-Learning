@@ -20,6 +20,8 @@ typedef struct List {
 	void (*alloc) (struct List *self);
 	int cap; 
 	int len;
+
+	//Could consider making this sep heap allocated var. B/c once heap will always be heap so no need to maintain var. But bool only uses 1 byte so prob not worth effort.
 	bool isHeapAllocated;
 	//term seq?? maybe 
 	int *buff;
@@ -35,7 +37,6 @@ int printArr(int *arr, int size) {
 }
 
 void alloc(List *self) {
-	//need to change to malloc list init, or need conditional check if on heap or stack
 	int prevCap = self -> cap;
 	int nBuffSize = prevCap << CAP_EXP_RATE;
 
@@ -143,14 +144,11 @@ SizedBuffer remRange(int startRange, int endRange, int step, List *self) {
 	}
 
 	self -> len -= indSize;
-	SizedBuffer sBuff = {indSize, &removed[0]}; //if no index rem then what?
+	SizedBuffer sBuff = {indSize, &removed[0]};
 	return sBuff;
 }
 int rem(int index, List *self) {
-	//Remove then shift left
-	//
-	
-	// in place?
+	//Buff size will never reduce, just eles shifted
 	
 
 	int *buff = self -> buff;
@@ -186,7 +184,7 @@ int main() {
 	list.expand = &expand;
 
 	int arr[] = {1,2,3,4,5}; //32 bit int arr
-	int startingCap = sizeof(arr) / sizeof(int); //b/c index = 0
+	int startingCap = sizeof(arr) / sizeof(int);
 
 	list.cap = startingCap;
 	list.len = startingCap;
@@ -206,14 +204,14 @@ int main() {
 	list.add(105, &list);
 	list.add(105, &list);
 	list.add(105, &list);
-	//need to add frees 
+
 	int buff[] = {98,99,100,101,102};
 	
 
 	list.remove(list.find(105, &list), &list);
 	list.expand(&buff[0], sizeof(buff) / sizeof(int), &list);
 
-	//now need to do that thing with byte 
+	//now need to do that thing with byte maybe
 	printArr(&list.buff[0], list.len);
 	return 0;
 }
