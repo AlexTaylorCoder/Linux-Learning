@@ -1,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hashmap
+// Hashkey -> unique mem address
+   // bytes of str 
+   // Turn into int
+   // shift bytes 
+   // 32 int
+   // 2^32 
+   // hash = asci val + index val
+int hashkey(char* arrPtr, int size) {
+
+	int key = 0;
+	for (int i = 0; i < size; i++) {
+		printf("%s", arrPtr[i]);
+		printf("%d\n Key Before", key);
+		key = key + i + arrPtr[i];
+		printf("%d\n Key After", key);
+	}
+	return key;
+}
+/*
+int main() {
+
+	char test_arr[] = {"testhashkey"};
+	int test_arr_len = 12;
+
+	int hash = hashkey(&test_arr[0], test_arr_len);
+	
+	printf("Hash %d\n", hash);
+}
+*/
+
+
+
