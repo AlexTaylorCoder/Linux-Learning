@@ -1,215 +1,173 @@
-
-
-#include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stddef.h>
 
-// Hashmap
-// Hashkey -> unique mem address
-   // bytes of str 
-   // Turn into int
-   // shift bytes 
-   // 32 int
-   // 2^32 
-   // hash = asci val + index val
-//Could use linked list structure
-//ORRRRR if chars dont change can use single arr buff
-// Could alocate *n capacity to allow
-typedef struct {
-     	int capacity;
-	char *bufferPtr;	
-} FixedArray; 
+#include "hashmap.h"
 
-typedef struct {
-	int wordBuffCap;
-	int arrBuffCap;
-	int numEles;
-	char *bufferPtr;
-} ValueBuffer;
-
-typedef struct {
-	int capacity;
-	ValueBuffer *valueBuffer;
-} HashMap;
-
+#define INIT_CAP 10
+//return is index
+int hashkey(MapProps *props, int key) {
+	//hashing strat????
 	
-int hashkey(char* arrPtr, int size, int mapSize) {
+	// good thing is with int should just need to fit into arr
+	int cap = props -> cap;
 
-	int key = 0;
-	for (int i = 0; i < size; i++) {
-	//	printf("char %c\n", arrPtr[i]);
-//		printf("%d\n Key Before\n", key);
-	
-		key = key + (arrPtr[i] << i + 1);//expand based on map
-	//	printf("%d\n Key After\n", key);
-	}
-	key = key >> size;
-
-	if (mapSize < size) {
-		int adjByteSize = size - mapSize; //use log2. Or similar 
-					    //(How many * 2s diff
-					    //Then bitwise shift right by this to compact  
-		printf("Adjusted Size %d\n", adjByteSize);
-		int byteDiff = (int) log2(adjByteSize);
-
-		int redKey =  key >> byteDiff + 1; //compress to size of map 
-		printf("Reduced Key Size %d\n", redKey);
-		return key >> byteDiff + 1; //compress to size of map 
-	} 
-
-	printf("Hash key %d\n", key);
-	return key ;
+	return key & (cap - 1); //Will map hashkey to cap bitmask
 }
 
-int add(HashMap *map, char* keyChars, int keyCharsSize, char* valChars, int valCharsSize, int wordBuffCap, int arrBuffCap)  { //cap will only matter for hashkey conflicts.
-	int key = hashkey(keyChars, keyCharsSize, map -> capacity);
-	ValueBuffer *buff = &map -> valueBuffer[key]; //in range of init cap
-	
-	if (valCharsSize > wordBuffCap) {
-		printf("Char size exceeds limit, reduce by %d keyChars\n", valCharsSize - wordBuffCap);
-		return 1;
-	}
-	
+int get_index(MapProps *props, int key) {
+		int hash = hashkey(props, key);
 
-	if (buff->numEles > 1 && wordBuffCap != buff->wordBuffCap)  {
-		printf("Caution you are changing the size of already allocated buffer, previous linked keys will be lost");
-	} 
-
-	
-	if (buff->bufferPtr == NULL) {
-		char newBuff[arrBuffCap];
-
-		buff -> bufferPtr = &newBuff[0]; //size of capacity determined by map cap + num of eles ( assuming hash is not limiter)->
-	    	buff -> arrBuffCap = arrBuffCap;
-
-	}
-
-	buff->wordBuffCap = wordBuffCap;
-
-	if (buff->wordBuffCap * buff -> numEles + valCharsSize > buff -> arrBuffCap) {
-		printf("Reached capacity of value assigned mem %d", buff->arrBuffCap);
-		return 1;
-	}
-
-	char t = 't';
-	char i = 'i';
-	buff -> bufferPtr[0] = t;
-	buff -> bufferPtr[1] = i;
-	buff -> bufferPtr[2] = t;
-	/*
-	for (int i = wordBuffCap * buff -> numEles; i < valCharsSize; i++) {
-		buff->bufferPtr[i] = valChars[i];
-	}
-
-	*/
-	buff -> numEles = 1;
-
-	return 0;
-		
+		int cap = props -> cap;
+		return hash % cap;
 }
 
-
-FixedArray get(HashMap *map, char* chars, int size) {
-	int key = hashkey(chars, size, map -> capacity);
-
-	//how to get just needed val key
-	//simplified identity key, appended to beg of str
-	//or n^2 iter check
-	//thing is longer the str, longer needed prepend. 
-	// n^2 iter check for chars if hashkey conflict
-	// start simpler 
-	
-	ValueBuffer *vb = &map -> valueBuffer[key];
-
-	int wordBuffCap = vb -> wordBuffCap;
-	int numEles  = vb -> numEles;
-	if (numEles <= 1) {
-		//return copy
-		char str[wordBuffCap];
-
-		printf("init val %c\n", vb -> bufferPtr[0]);
-		for (int i = 0; i < wordBuffCap * numEles; i += wordBuffCap) {
-			for (int k = 0; k < wordBuffCap; k++) {
-				printf("i: %d, k: %d\n", i, k);
-				printf("val %c", str[k]);
-				
-				//is this garbage yes looks like it not mem addr
-				str[k] = vb -> bufferPtr[k+i];
-			}
-
+//  dont even need linked list for basic int maps b/c dont need hashing
+//  so instead impl simple linked hashmap. which can contain dupe keys
+int get_first_from_linked(Pair *p, int key) {
+	Pair *head = p;
+	while (head != NULL) {
+		if (head -> key = key) {
+			return head -> value;
 		}
-
-
-		printf("%d hit expected", wordBuffCap);
-		FixedArray arr = { wordBuffCap, &str[0] };
-
-		return arr;
-	} else {
-		//If conflict may have to add key into arr struct, so knows val
-		//Which would involve. 1) add mem based on key len. 2) when first add value, k
-		//
-		char str[wordBuffCap];
-		FixedArray arr = { wordBuffCap, &str[0] };
-
-		return arr;
+		head -> next;
 	}
-}	
-int printArr(char *chars, int size) {
-	printf("\n");
-	for (int i = 0; i < size; i++) {
-		printf("%c", chars[i]);
-	}
-	printf("\n");
+	printf("Matching unhashed key not found, something wrong with impl");
+	exit(1);
 }
 
-void init(int size) {
-	//dynamic
-	//hashkey larger must increase size of map
-	//or some compression algo
-	//what compression? what 
-	//use length as additional mask
-	//maybe shift by length? 2 ^ 10 is huge
-	//but then each new bit could repr new mem maybe?
-	//but then ec	char arr[100];
-	char mapBuffer[size];
+int get(MapProps *props, int key) {
 
-	ValueBuffer valueBuffer[size];
+	Pair *pairbuff = &props -> buff[get_index(props, key)];//ptr to val
+						    
+	if (pairbuff -> isempty == true) { 
+		printf("key %d not found", key);
+		//can either pass responsbiilty to user
+		//or use wrapper obj; 
+		exit(1);
+	} 
 
-	HashMap	map = {};
-
-	map.capacity = size;
-	map.valueBuffer = &valueBuffer[0];
-
-	char testKey[] = "testkey";
-	int sizeKey = sizeof(testKey) - 1;
-	char testVal[] = "testvallll";
-	int sizeVal = sizeof(testVal) - 1;
-
-	add(&map, &testKey[0], sizeKey, &testVal[0], sizeVal, sizeVal, sizeVal * 5);
-	//Each of these val buffers
-	FixedArray arr = get(&map, &testKey[0], sizeKey);
-
-	printArr(&arr.bufferPtr[0], arr.capacity);
-}
-
-int main() {
-	init(500);
-	return 0;
-}
-
-
-/*
-int main() {
-
-	char test_arr[] = {"testhashkey"};
-	int test_arr_len = 12;
-
-	int hash = hashkey(&test_arr[0], test_arr_len);
+	return get_first_from_linked(pairbuff, key); //
 	
-	printf("Hash %d\n", hash);
 }
-*/
+
+void add_to_linked(Pair *p, Pair *newP) {
+	Pair *head = p;
+
+	while (head -> next != NULL && head -> next -> isempty == false) {
+		head = head -> next;
+	}
+
+	head -> next = newP;
+}
+//type 
+int add(MapProps *props,int key, int val) {
+	int hash = hashkey(props, key);
+
+	int cap = props -> cap;
+
+	// always within hashmap buff
+	Pair *pairbuff = &props -> buff[get_index(props,key)];//ptr to val
+					//
+					//
+					//
+
+	if (pairbuff -> isempty == true) {
+		pairbuff -> isempty = false;
+		pairbuff -> key = key;
+		pairbuff -> value = val;
+		return 1;
+	} else {
+
+		Pair p = {key, val, false, NULL};
+		Pair *nBuff = malloc(sizeof(Pair));
+nBuff 
+		add_to_linked(pairbuff, &p);
+		return 0;
+		//CONS
+		//	//o(n) on hash collision
+		//linked struct makes more sense
+		// b/c hashmap collisions are travresed much
+	}
+}
+
+int rem_from_linked(Pair *p, int val) {
+	Pair *head = p;
+	while (head -> next != NULL) {
+		if (head -> next -> value = val) {
+
+			Pair *newNext = head -> next -> next;
+			
+			head -> next = NULL; //lose next which is val to rem
+			//TODO if heap allocated need to also free mem.
+			head -> next = newNext; //assign to node after
+
+			return 0;
+	}
+		head = head -> next;
+	}
+	return -1;
+}
+
+void rem(MapProps *props,int key) {
+	int ind = get_index(props,key);
+
+	Pair *pairbuff = &props -> buff[get_index(props,key)];//ptr to val
+	
+	pairbuff -> isempty = true;
+}
+
+int rem_val(MapProps *props, int key, int val) {
+	int ind = get_index(props,key);
+
+	Pair *pairbuff = &props -> buff[get_index(props,key)];//ptr to val
+
+	return rem_from_linked(pairbuff, val);
+}
 
 
+int main() {
+	Pair p[INIT_CAP];
 
+	for (int i = 0; i < INIT_CAP; i++) {
+		p[i].isempty = true;
+	}
+
+	MapProps props = {
+		INIT_CAP,
+		&p[0]
+	};
+
+	Map map;
+	map.get = &get;
+	map.add = &add;
+	map.rem = &rem;
+	map.rem_val = &rem_val;
+
+	map.add(&props, 1, 10);
+	map.add(&props, 1, 100);
+
+	map.add(&props, 2, 20);
+
+	int val = map.get(&props, 1); 
+	int val2 = map.get(&props, 2); 
+
+	printf("val %d\n", val);
+	printf("val 2 %d\n", val2);
+
+	// map.rem(&props, 2);
+	// int val2t = map.get(&props, 2); //should throw
+	// printf("val 2 %d\n", val2t);
+
+
+	int valrem = map.rem_val(&props, 1, 100);
+	printf("val 100 should be 10 now %d", valrem);
+	return 1;
+}
+
+int test() {
+  int pp = 24;
+int tt = 12125;
+    return pp + tt;
+}

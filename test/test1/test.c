@@ -5,36 +5,33 @@
 
 #define CAP_EXP_RATE 2
 
+int printArr(int *arr, int size) {
+	printf("[");
+	for (int i = 0; i < size; i++) {
+		printf("%d , ", arr[i]);
+	}
+	printf("]\n");
+}
 
-			//fixedExpRate Used to reduce # of allocs if multiple eles added at once
-			//Should be 0 if num of Eles added / [removed = 1
-void alloc(List *self, int fixedExpRate) {
+void alloc(List *self) {
 	int prevCap = self -> cap;
-	int nBuffSize = (prevCap + fixedExpRate) << CAP_EXP_RATE;
+	int nBuffSize = prevCap << CAP_EXP_RATE;
+
+	int *nBuff = malloc(nBuffSize * sizeof(int));
+
 
 	int *buff = self -> buff;
-
+	for (int i = 0; i < prevCap; i++) {
+		nBuff[i] = buff[i];
+	}
 
 	if (self -> isHeapAllocated == true) {
-		self -> buff = reallocarray(buff, prevCap, nBuffSize * sizeof(int));
+		free(buff);
 	} else {
-		//How could I malloc while maintain stack????
-		//coujld have stack heap
-		//Could I malloc? and keep ptr\
-		//Cpild have 2 diff ptrs and toggle based on bool
-		//or could reas all to heap
-		
-	       
-	       int *heap = malloc(nBuffSize * sizeof(int));
-	       for (int i = 0; i < self -> len; i++) {
-	       		heap[i] = self -> buff[i];
-		}
-
-		self -> buff = heap;
-	       
 	       self -> isHeapAllocated = true;
 	}
 
+	self -> buff = nBuff;
 	self -> cap = nBuffSize;
 }
 int checkBounds(int index, List *self, int (*arrOp)(int, List *)) {
@@ -51,7 +48,7 @@ void add(int val, List *self) {
 
 	int len = self -> len;
 	if (self -> cap <= len) {
-	       alloc(self, 0);
+	       alloc(self);
 	}
 
 
@@ -64,7 +61,22 @@ void expand(int *buff, int size, List *self) {
 
 	int newLen = len + size;
 	if (self -> cap <= newLen) {
-		alloc(self, newLen);
+		int *prevBuff = self -> buff;
+
+		int newBuffSize = newLen << CAP_EXP_RATE;
+		int *nBuff = malloc(newBuffSize * sizeof(int));
+		for (int i = 0; i < len; i++) {
+			nBuff[i] = prevBuff[i];
+		}
+
+		if (self -> isHeapAllocated == true) {
+			free(prevBuff);
+		} else {
+		       self -> isHeapAllocated = true;
+		}
+		
+		self -> buff = nBuff;
+		self -> cap = newBuffSize;
 	}
 
 	for (int i = 0; i < size; i++) {
@@ -133,19 +145,4 @@ int find(int val, List *self) {
 		}
 	}
 	return -1;
-}
-
-//will skip impl for now, will be same as add logic for checking cap
-//Same as remove logic for shifting eles
-int insert() {
-}
-void init(List *list) {
-	list->add = add;
-	list->get = get;
-	list->remove = rem;
-	list->find = find;
-	list->checkBounds = checkBounds;
-	list->remRange = remRange;
-	list->alloc = alloc; 
-	list->expand = expand;
 }
