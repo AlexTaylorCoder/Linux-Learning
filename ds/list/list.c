@@ -31,8 +31,7 @@ void alloc(List *self, int fixedExpRate) {
 		}
 
 		self -> buff = heap;
-	       
-	       self -> isHeapAllocated = true;
+    self -> isHeapAllocated = true;
 	}
 
 	self -> cap = nBuffSize;

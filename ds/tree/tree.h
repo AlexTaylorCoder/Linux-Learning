@@ -6,4 +6,5 @@ typedef struct node {
 } node;
 
 typedef struct tree {
+  struct node *head;
 } tree;
